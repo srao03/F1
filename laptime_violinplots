@@ -1,0 +1,118 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Mar 31 15:59:05 2023
+
+import fastf1 as ff1
+from fastf1 import plotting
+
+import pandas as pd
+import seaborn as sns
+from matplotlib import pyplot as plt
+from matplotlib.pyplot import figure
+from matplotlib import cm
+
+import numpy as np
+pd.options.mode.chained_assignment = None
+ff1.Cache.enable_cache('cache/')
+event = 'Race'
+# session = ff1.get_session(2023, 'testing', '2')
+session = ff1.get_session(2023, 'Jeddah', event)
+lapmin, lapmax = 91, 98
+laps = session.load_laps()
+# laps = session.load_laps()
+
+laps['LapTimeSeconds'] = laps['LapTime'].dt.total_seconds()
+laps = laps.loc[(laps['PitOutTime'].isnull() & laps['PitInTime'].isnull())]
+# load_laps = np.array(laps['LapTimeSeconds'])
+laps2 = laps['LapTimeSeconds']
+filtered_laps = list()
+
+for laps1 in laps2:
+    if laps1 > lapmin and laps1 < lapmax:
+        filtered_laps.append(laps1)
+    else:
+        filtered_laps.append(None)
+
+
+laps['loaded'] = filtered_laps
+q75, q25 = laps['loaded'].quantile(
+    0.75), laps['loaded'].quantile(0.25)
+
+intr_qr = q75-q25
+print(intr_qr)
+print(q75)
+print(q25)
+laptime_max = q75+(1.5*intr_qr)
+laptime_min = q25-(1.5*intr_qr)
+laps.loc[laps['loaded'] < laptime_min, 'loaded'] = np.nan
+laps.loc[laps['loaded'] > laptime_max, 'loaded'] = np.nan
+# drivers_to_visualize = ['HAM', 'RUS', 'VER', 'PER', 'LEC', 'SAI']
+# colours = ['Cyan', 'Cyan', 'Blue', 'Blue', 'Red', 'Red']
+# drivers_to_visualize = ['PER', 'SAI', 'HAM', 'ALO', 'OCO']
+drivers_to_visualize = ['PER', 'VER', 'ALO', 'STR', 'RUS',
+                        'HAM',  'SAI', 'LEC', 'OCO', 'GAS']
+
+# colours = ['orange', 'white', '#2b4562', '#900000', '#005aff']
+colours = ['Blue', 'Blue', 'Green', 'Green', 'Cyan', 'Cyan','Red',
+           'Red','#0090ff','#0090ff']
+
+sns.set_palette(colours)
+plt.style.use('dark_background')
+laps.to_pickle("dummy.pkl")
+laps.rename(columns = {'loaded':'Lap Time (s)'}, inplace = True)
+laps=laps.loc[laps['Driver'].isin(drivers_to_visualize)]
+DR_list=[]
+DR1_list=['VER','HAM','LEC','GAS','ALO','NOR','TSU','HUL','BOT','ALB']
+DR2_list=['PER','RUS','SAI','OCO','STR','PIA','DEV','MAG','ZHO','SAR']
+for k in laps.Driver:
+    if k in DR1_list:
+        DR_list.append('Driver_1')
+    elif k in DR2_list:
+        DR_list.append('Driver_2')
+laps['DR_cat']=DR_list
+Dr_combo=[]
+for k1 in laps.Team:
+    if k1 == 'Red Bull Racing':
+        Dr_combo.append('VER | PER')
+    elif k1 == 'Aston Martin':
+        Dr_combo.append('ALO | STR')
+    elif k1 == 'Mercedes':
+        Dr_combo.append('HAM | RUS')
+    elif k1 == 'Ferrari':
+        Dr_combo.append('LEC | SAI')
+    elif k1 == 'Alpine':
+        Dr_combo.append('GAS | OCO')
+    elif k1 == 'Haas F1 Team':
+        Dr_combo.append('HUL | MAG')
+    elif k1 == 'AlphaTauri':
+        Dr_combo.append('TSU | DEV')
+    elif k1 == 'Alfa Romeo':
+        Dr_combo.append('BOT | ZHO')
+    elif k1 == 'McLaren':
+        Dr_combo.append('NOR | PIA')
+    elif k1 == 'Williams':
+        Dr_combo.append('ALB | SAR')
+laps['Dr_combo']=Dr_combo
+
+titl = str(session.event.year) +' '+session.event['EventName']+' \n'+'Race Pace Distribution'
+   
+fig, ax = plt.subplots(figsize=(20, 11.25))
+
+sns.violinplot(data=laps, x="Dr_combo", y="Lap Time (s)", hue='DR_cat',
+                palette=colours, split=True, 
+                hue_order=['Driver_1','Driver_2'], legend=False)
+# Uncomment lines 105-110 to create seperate violin plots
+# sns.violinplot(x="Driver", y="Lap Time (s)",
+#                     data=laps, palette=colours, split=False,
+#                     scale="count", 
+#                     order = drivers_to_visualize, legend=False)
+# sns.swarmplot(data=laps, x="Driver", y="Lap Time (s)",
+#               order = drivers_to_visualize,color='black', size=10, alpha=0.7)
+
+ax.xaxis.set_tick_params(labelsize=20)
+ax.yaxis.set_tick_params(labelsize=20)
+plt.ylabel('Laptime (s)', fontweight='bold', fontsize=20)
+plt.xlabel('Drivers', fontweight='bold', fontsize=20)
+plt.suptitle(
+    f" Race Pace \n"
+    f"{session.event.year} {session.event['EventName']} ({event}) ", fontsize=20, fontweight='bold')
