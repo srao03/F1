@@ -1,0 +1,97 @@
+import fastf1 as ff1
+from fastf1 import plotting
+from matplotlib import pyplot as plt
+from fastf1 import utils
+import pandas as pd
+from timple.timedelta import strftimedelta
+import numpy as np
+
+plotting.setup_mpl()
+ff1.Cache.enable_cache('cache/')
+
+session = ff1.get_session(2023, 'Australian Grand Prix', 'R')
+driver1, driver2 = 'VER', 'HAM'
+
+laps = session.load_laps(with_telemetry=True)
+
+laps_driver1 = laps.pick_driver(driver1)
+laps_driver2 = laps.pick_driver(driver2)
+
+# driver1_fastest = laps_driver1.pick_fastest()
+# driver2_fastest = laps_driver2.pick_fastest()
+# driver1_tel = driver1_fastest.get_car_data().add_distance()
+# driver2_tel = driver2_fastest.get_car_data().add_distance()
+
+LN=1
+driver1_tel = laps_driver1.loc[laps_driver1['LapNumber']==LN].get_car_data().add_distance()
+driver2_tel = laps_driver2.loc[laps_driver2['LapNumber']==LN].get_car_data().add_distance()
+
+for L in range(2,55):
+    dtl1 = laps_driver1.loc[laps_driver1['LapNumber']==L].get_car_data().add_distance()
+    dtl2 = laps_driver2.loc[laps_driver2['LapNumber']==L].get_car_data().add_distance()
+
+    driver1_tel=pd.concat([driver1_tel,dtl1],axis=0)
+    driver2_tel=pd.concat([driver2_tel,dtl2],axis=0)
+
+v1=driver1_tel['Speed'].to_frame().drop([0]).to_numpy()
+v2=driver2_tel['Speed'].to_frame().drop([0]).to_numpy()
+
+dv1=driver1_tel['Speed'].to_frame().diff(axis=0).dropna(axis=0)
+dv2=driver2_tel['Speed'].to_frame().diff(axis=0).dropna(axis=0)
+
+t1=driver1_tel['Time'].to_frame().diff(axis=0).dropna(axis=0).Time.dt.total_seconds().to_frame()
+t2=driver2_tel['Time'].to_frame().diff(axis=0).dropna(axis=0).Time.dt.total_seconds().to_frame()
+
+dv1.rename(columns = {'Speed':'X'}, inplace = True)
+dv2.rename(columns = {'Speed':'X'}, inplace = True)
+t1.rename(columns = {'Time':'X'}, inplace = True)
+t2.rename(columns = {'Time':'X'}, inplace = True)
+
+acc1=dv1.div(t1)
+acc1=acc1['X'].values.tolist()
+
+acc2=dv2.div(t2)
+acc2=acc2['X'].values.tolist()
+
+acc1.insert(0,0)
+acc2.insert(0,0)
+
+driver1_tel['Accel']=acc1
+driver2_tel['Accel']=acc2
+
+dr1_d=driver1_tel.loc[driver1_tel['Distance']>4852]
+dr2_d=driver1_tel.loc[driver1_tel['Distance']<234]
+
+dr1_a=dr1_d.loc[dr1_d['Accel']>0]
+dr2_a=dr2_d.loc[dr2_d['Accel']>0]
+
+drtel1_DRSoff=dr1_a.loc[dr1_a['DRS']==1]
+drtel2_DRSoff=dr2_a.loc[dr2_a['DRS']==1]
+
+drtel1_DRSon=dr1_a.loc[dr1_a['DRS']==12]
+drtel2_DRSon=dr2_a.loc[dr2_a['DRS']==12]
+
+# dr1_tel=pd.concat([dr1_tel2,dr1_tel1],axis=0)
+# dr2_tel=pd.concat([dr2_tel2,dr2_tel1],axis=0)
+
+v1_DRSoff=drtel1_DRSoff.Speed.to_numpy()
+v2_DRSoff=drtel2_DRSoff.Speed.to_numpy()
+ac1_DRSoff=drtel1_DRSoff.Accel.to_numpy()
+ac2_DRSoff=drtel2_DRSoff.Accel.to_numpy()
+
+v1_DRSon=drtel1_DRSon.Speed.to_numpy()
+v2_DRSon=drtel2_DRSon.Speed.to_numpy()
+ac1_DRSon=drtel1_DRSon.Accel.to_numpy()
+ac2_DRSon=drtel2_DRSon.Accel.to_numpy()
+
+plt.scatter(v1_DRSoff,ac1_DRSoff,c='b')
+plt.scatter(v1_DRSon,ac1_DRSon,c='cyan')
+plt.xlabel('Speed')
+plt.ylabel('Acceleration')
+plt.ylim(-10,40)
+plt.legend(['DRS OFF', 'DRS ON'])
+plt.show()
+
+
+
+
