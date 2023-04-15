@@ -5,6 +5,7 @@ from fastf1 import utils
 import pandas as pd
 from timple.timedelta import strftimedelta
 import numpy as np
+from scipy.optimize import curve_fit
 
 plotting.setup_mpl()
 ff1.Cache.enable_cache('cache/')
@@ -33,6 +34,11 @@ for L in range(2,55):
     driver1_tel=pd.concat([driver1_tel,dtl1],axis=0)
     driver2_tel=pd.concat([driver2_tel,dtl2],axis=0)
 
+#Covert spd to m/s
+driver1_tel.Speed *= 0.2778
+driver2_tel.Speed *= 0.2778
+
+# Estimate acceleration
 v1=driver1_tel['Speed'].to_frame().drop([0]).to_numpy()
 v2=driver2_tel['Speed'].to_frame().drop([0]).to_numpy()
 
@@ -59,9 +65,34 @@ acc2.insert(0,0)
 driver1_tel['Accel']=acc1
 driver2_tel['Accel']=acc2
 
-dr1_d=driver1_tel.loc[driver1_tel['Distance']>4852]
-dr2_d=driver1_tel.loc[driver1_tel['Distance']<234]
+# Speed filter
+spd_limit=65
+driver1_tel=driver1_tel.loc[driver1_tel['Speed']>spd_limit]
+driver2_tel=driver2_tel.loc[driver2_tel['Speed']>spd_limit]
 
+# Filter based on distance
+z1=[0,163]
+z2=[586,874]
+z3=[2534,3112]
+z4=[3539,3914]
+z5=[4835,10000]
+
+dr1_d1=driver1_tel.loc[(driver1_tel['Distance']>z1[0]) & (driver1_tel['Distance']<z1[1])]
+dr1_d2=driver1_tel.loc[(driver1_tel['Distance']>z2[0]) & (driver1_tel['Distance']<z2[1])]
+dr1_d3=driver1_tel.loc[(driver1_tel['Distance']>z3[0]) & (driver1_tel['Distance']<z3[1])]
+dr1_d4=driver1_tel.loc[(driver1_tel['Distance']>z4[0]) & (driver1_tel['Distance']<z4[1])]
+dr1_d5=driver1_tel.loc[(driver1_tel['Distance']>z5[0]) & (driver1_tel['Distance']<z5[1])]
+
+dr2_d1=driver2_tel.loc[(driver2_tel['Distance']>z1[0]) & (driver2_tel['Distance']<z1[1])]
+dr2_d2=driver2_tel.loc[(driver2_tel['Distance']>z2[0]) & (driver2_tel['Distance']<z2[1])]
+dr2_d3=driver2_tel.loc[(driver2_tel['Distance']>z3[0]) & (driver2_tel['Distance']<z3[1])]
+dr2_d4=driver2_tel.loc[(driver2_tel['Distance']>z4[0]) & (driver2_tel['Distance']<z4[1])]
+dr2_d5=driver2_tel.loc[(driver2_tel['Distance']>z5[0]) & (driver2_tel['Distance']<z5[1])]
+
+dr1_d=pd.concat([dr1_d1,dr1_d2,dr1_d3,dr1_d4,dr1_d5],axis=0)
+dr2_d=pd.concat([dr1_d1,dr1_d2,dr1_d3,dr1_d4,dr1_d5],axis=0)
+
+# Remove Deceleration points
 dr1_a=dr1_d.loc[dr1_d['Accel']>0]
 dr2_a=dr2_d.loc[dr2_d['Accel']>0]
 
@@ -70,9 +101,6 @@ drtel2_DRSoff=dr2_a.loc[dr2_a['DRS']==1]
 
 drtel1_DRSon=dr1_a.loc[dr1_a['DRS']==12]
 drtel2_DRSon=dr2_a.loc[dr2_a['DRS']==12]
-
-# dr1_tel=pd.concat([dr1_tel2,dr1_tel1],axis=0)
-# dr2_tel=pd.concat([dr2_tel2,dr2_tel1],axis=0)
 
 v1_DRSoff=drtel1_DRSoff.Speed.to_numpy()
 v2_DRSoff=drtel2_DRSoff.Speed.to_numpy()
@@ -84,14 +112,23 @@ v2_DRSon=drtel2_DRSon.Speed.to_numpy()
 ac1_DRSon=drtel1_DRSon.Accel.to_numpy()
 ac2_DRSon=drtel2_DRSon.Accel.to_numpy()
 
+def test(x, a, b):
+    return a + b*x
+
+param1, param_cov1 = curve_fit(test, v1_DRSoff, ac1_DRSoff)
+acc_Fit_DRSoff1= np.array(param1[0]) + np.array(param1[1]*v1_DRSoff)
+
+param2, param_cov2 = curve_fit(test, v1_DRSon, ac1_DRSon)
+acc_Fit_DRSon1= np.array(param2[0]) + np.array(param2[1]*v1_DRSon)
+
 plt.scatter(v1_DRSoff,ac1_DRSoff,c='b')
 plt.scatter(v1_DRSon,ac1_DRSon,c='cyan')
-plt.xlabel('Speed')
-plt.ylabel('Acceleration')
-plt.ylim(-10,40)
-plt.legend(['DRS OFF', 'DRS ON'])
+plt.plot(v1_DRSoff,acc_Fit_DRSoff1)
+plt.plot(v1_DRSon,acc_Fit_DRSon1)
+
+plt.xlabel('Speed, m/s')
+plt.ylabel('Acceleration, m/s2')
+# plt.ylim(0,20)
+# plt.xlim(40,90)
+plt.legend(['DRS OFF', 'DRS ON','Curve Fit DRS OFF','Curve Fit DRS ON'])
 plt.show()
-
-
-
-
