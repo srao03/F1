@@ -1,29 +1,24 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Apr 15 20:50:35 2023
-
 import fastf1 as ff1
 from fastf1 import plotting
 from matplotlib import pyplot as plt
 import pandas as pd
-import numpy as np
 from scipy.optimize import curve_fit
-from matplotlib import style
 
 plotting.setup_mpl()
 ff1.Cache.enable_cache('cache/')
 
 # Inputs
 session = ff1.get_session(2023, 'Saudi Arabian Grand Prix', 'R')
-drivers=['VER', 'HAM']
+drivers=['VER','HAM','ALO','SAI']
 spd_filter_limit=55
 lap_nos=list(range(1,50))
 year='2023'
+curve_fit_flg=1 # 1-linear fit, 2-Quadratic fit
+
 weekend = session.event
-
-
 laps = session.load_laps(with_telemetry=True)
 Dict_dr={}
+
 for j in drivers:
     laps_driver=laps.pick_driver(j)
     
@@ -45,50 +40,101 @@ for j in drivers:
     acc1=dv1.div(t1)
     acc1=acc1['X'].values.tolist()
     acc1.insert(0,0)
-
     driver_tel['Accel']=acc1
 
     # Speed filter
     driver_tel=driver_tel.loc[driver_tel['Speed']>spd_filter_limit]
 
     # Filter based on distance
-    z1=[0,163]
-    z2=[586,874]
-    z3=[2534,3112]
-    z4=[3539,3914]
-    z5=[4835,10000]
-
+    
+    # Saudi Track data
+    z1=[0,274]
+    z2=[3653,3952]
+    z3=[4679,5191]
+    z4=[5833,10000]
+    
+    # Bahrain
+    # z1=[0,525]
+    # z2=[1010, 1323]
+    # z3=[2801, 3165]
+    # z4=[5290, 10000]
+    
+    # Australian
+    # z1=[0,232]
+    # z2=[676,954]
+    # z3=[2534,3112]
+    # z4=[3539,3914]
+    # z5=[4835,10000]
+    
     dr1_d1=driver_tel.loc[(driver_tel['Distance']>z1[0]) & (driver_tel['Distance']<z1[1])]
     dr1_d2=driver_tel.loc[(driver_tel['Distance']>z2[0]) & (driver_tel['Distance']<z2[1])]
     dr1_d3=driver_tel.loc[(driver_tel['Distance']>z3[0]) & (driver_tel['Distance']<z3[1])]
     dr1_d4=driver_tel.loc[(driver_tel['Distance']>z4[0]) & (driver_tel['Distance']<z4[1])]
-    dr1_d5=driver_tel.loc[(driver_tel['Distance']>z5[0]) & (driver_tel['Distance']<z5[1])]
-    dr_d=pd.concat([dr1_d1,dr1_d2,dr1_d3,dr1_d4,dr1_d5],axis=0)
+    # dr1_d5=driver_tel.loc[(driver_tel['Distance']>z5[0]) & (driver_tel['Distance']<z5[1])]
+    dr_d=pd.concat([dr1_d1,dr1_d2,dr1_d3,dr1_d4],axis=0)
 
     # Remove Deceleration points
     dr_a=dr_d.loc[dr_d['Accel']>0]
 
     drtel_DRSoff=dr_a.loc[dr_a['DRS']==1]
     drtel_DRSon=dr_a.loc[dr_a['DRS']==12]
+    
     drtel_DRSoff=drtel_DRSoff.sort_values(by=['Speed'], ascending=True)
     drtel_DRSon=drtel_DRSon.sort_values(by=['Speed'], ascending=True)
+    min_DRSon_Spd = drtel_DRSon.Speed.min()
+    drtel_DRSoff=drtel_DRSoff[drtel_DRSoff['Speed']>=min_DRSon_Spd]
     
     vel_DRSoff=drtel_DRSoff.Speed.to_numpy()
     acc_DRSoff=drtel_DRSoff.Accel.to_numpy()
     
     vel_DRSon=drtel_DRSon.Speed.to_numpy()
     acc_DRSon=drtel_DRSon.Accel.to_numpy()
+        
+    if curve_fit_flg == 1:
+        def test(x, a, b):
+            return a + b*x
+
+        param1, _ = curve_fit(test, vel_DRSoff, acc_DRSoff)
+        a1,b1=param1
+        acc_Fit_DRSoff=test(vel_DRSoff, a1, b1)
+
+        param2, _ = curve_fit(test, vel_DRSon, acc_DRSon)
+        a2,b2=param2
+        acc_Fit_DRSon=test(vel_DRSon, a2, b2) 
     
-    def test(x, a, b, c):
-        return a*x + b*x**2 + c
+    else:
+         def test(x, a, b, c):
+             return a*x + b*x**2 + c
 
-    param1, _ = curve_fit(test, vel_DRSoff, acc_DRSoff)
-    a,b,c=param1
-    acc_Fit_DRSoff=test(vel_DRSoff, a, b, c)
+         param1, _ = curve_fit(test, vel_DRSoff, acc_DRSoff)
+         a1,b1,c1=param1
+         acc_Fit_DRSoff=test(vel_DRSoff, a1, b1, c1)
 
-    param2, _ = curve_fit(test, vel_DRSon, acc_DRSon)
-    a,b,c=param2
-    acc_Fit_DRSon=test(vel_DRSon, a, b, c)
+         param2, _ = curve_fit(test, vel_DRSon, acc_DRSon)
+         a2,b2,c2=param2
+         acc_Fit_DRSon=test(vel_DRSon, a2, b2, c2)   
+    
+    # Estimate DRS Effectiveness
+
+    # DRS on accel & speed @ Start
+    acc_1 = test(vel_DRSoff[0], a2, b2)
+    spd_1 = vel_DRSoff[0]
+    # DRS on accel & speed @ End
+    acc_2 = test(vel_DRSoff[-1], a2, b2)
+    spd_2 = vel_DRSoff[-1]
+    # DRS off accel & speed @ Start
+    acc_3 = acc_Fit_DRSoff[0]
+    spd_3 = vel_DRSoff[0]
+    # DRS off accel & speed @ End
+    acc_4 = acc_Fit_DRSoff[-1]
+    spd_4 = vel_DRSoff[-1]
+    
+    acc_diff_start=round(acc_1-acc_3,2)
+    acc_diff_end=round(acc_2-acc_4,2)
+    avg_acc_diff = round((acc_diff_start+acc_diff_end)/2,2)
+    print(j, acc_diff_start,acc_diff_end,avg_acc_diff)
+    print(j, acc_1,acc_2,acc_3,acc_4)
+    print(j, spd_1,spd_2,spd_3,spd_4)
     
     # Save to dictionary
     Dict_dr[j+'_1']=vel_DRSoff
@@ -100,10 +146,11 @@ for j in drivers:
     fig, ax = plt.subplots(figsize=(9,9))
     driver_color = ff1.plotting.driver_color(j)
 
-    ax.scatter(vel_DRSoff,acc_DRSoff,c=driver_color,edgecolors='green')
-    ax.scatter(vel_DRSon,acc_DRSon,c=driver_color)
-    ax.plot(vel_DRSoff,acc_Fit_DRSoff)
-    ax.plot(vel_DRSon,acc_Fit_DRSon)
+    ax.scatter(vel_DRSoff,acc_DRSoff,c=driver_color,marker='v',s=100,edgecolor='white')
+    ax.scatter(vel_DRSon,acc_DRSon,c=driver_color,s=100,edgecolor='black')
+    ax.plot(vel_DRSoff,acc_Fit_DRSoff,linewidth=5,color=driver_color)
+    ax.plot(vel_DRSon,acc_Fit_DRSon,linestyle='dashed',
+            dashes=[6, 2],linewidth=5,color='white')
     ax.set_title(f'{weekend.name} {year} - {j} - DRS Effectiveness',
                  fontsize=20, fontweight='bold')
     ax.set_xlabel('Speed, m/s',fontsize=20)
@@ -111,34 +158,36 @@ for j in drivers:
     ax.set_ylim(0,15)
     ax.yaxis.set_tick_params(labelsize=18)
     ax.xaxis.set_tick_params(labelsize=18)
-    ax.legend(['DRS OFF', 'DRS ON','Curve Fit DRS OFF','Curve Fit DRS ON'])
+    ax.legend(['DRS OFF', 'DRS ON','Curve Fit DRS OFF','Curve Fit DRS ON'],handlelength=7)
     
-    # del driver_tel,laps_driver,acc1,v1,dv1,t1,dr_d,dr_a
+    del param2, param1, acc_Fit_DRSon, acc_Fit_DRSoff
 plt.show()
-
 
 # Compare across multiple Drivers
 fig1, ax1 = plt.subplots(figsize=(9,9))
 ax1.set_title(f'{weekend.name} {year} - DRS Effectiveness',
              fontsize=20, fontweight='bold')
 for jj in drivers:
+    
     driver_color1 = ff1.plotting.driver_color(jj)
-    ax1.plot(Dict_dr[jj+'_1'],Dict_dr[jj+'_3'],c=driver_color1,label=jj+' DRS off')
-    ax1.plot(Dict_dr[jj+'_2'],Dict_dr[jj+'_4'],label=jj+' DRS on',
-             linestyle='dashdot',c=driver_color1,dashes=[6, 2])
+    
+    ax1.plot(Dict_dr[jj+'_1'],Dict_dr[jj+'_3'],c=driver_color1,
+             label=jj+' DRS off',linewidth=5)
+    ax1.plot(Dict_dr[jj+'_2'],Dict_dr[jj+'_4'],
+             linestyle='dashed',c=driver_color1,label=jj+' DRS on',
+             linewidth=5)
+    # if jj != 'VER':
+    #     f0=Dict_dr[jj+'_1']
+    #     f1=Dict_dr[jj+'_3']
+    #     f2=Dict_dr[jj+'_4']
+    #     ax1.vlines(x = f0[0], ymin = 0, ymax = f2[0], color = 'w',linestyle='dotted')
+    #     ax1.vlines(x = f0[-1], ymin = 0, ymax = 2.2, color = 'w',linestyle='dotted')
+        
     ax1.set_xlabel('Speed, m/s',fontsize=20)
     ax1.set_ylabel('Acceleration, m/s2',fontsize=20)
     ax1.yaxis.set_tick_params(labelsize=18)
     ax1.xaxis.set_tick_params(labelsize=18)
-plt.legend()
+    ax1.set_ylim(0,6)
+
+plt.legend(fontsize=10, handlelength=5)
 plt.show()
-
-
-
-
-
-
-
-
-
-
