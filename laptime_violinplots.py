@@ -4,7 +4,6 @@ Created on Fri Mar 31 15:59:05 2023
 
 @author: msrms
 """
-
 import fastf1 as ff1
 import pandas as pd
 import seaborn as sns
@@ -15,13 +14,13 @@ pd.options.mode.chained_assignment = None
 ff1.Cache.enable_cache('cache/')
 
 # Inputs ---------------------------------------
-event = 'FP2'
+event = 'RACE'
 session = ff1.get_session(2023, 'MIAMI', event)
 lapmin, lapmax = 1, 52
 laps = session.load_laps()
-laptymfilter_upper=95
-laptymfilter_low=88
-drivers_to_visualize = ['PER', 'ALO', 'SAI', 'MAG', 'GAS', 'RUS', 'LEC', 'OCO','VER','BOT']
+laptymfilter_upper=200
+laptymfilter_low=0
+drivers_to_visualize = ['VER', 'PER', 'ALO', 'RUS', 'SAI', 'HAM', 'LEC', 'GAS', 'OCO']
 # -----------------------------------------------
 
 colours = []
@@ -114,6 +113,7 @@ for k1 in laps.Team:
         Dr_combo.append('ALB | SAR')
 laps['Dr_combo']=Dr_combo
 
+        
 laps=laps.dropna(subset=['LapTimeSeconds'])
 laps=laps.loc[laps['LapTimeSeconds']<laptymfilter_upper]
 laps=laps.loc[laps['LapTimeSeconds']>=laptymfilter_low]
@@ -128,16 +128,26 @@ sns.violinplot(x="Driver", y="LapTimeSeconds",
                     order = drivers_to_visualize, legend=False)
 sns.stripplot(data=laps, x="Driver", y="LapTimeSeconds",hue="Compound",
               order = drivers_to_visualize,
-              palette=['Yellow','Red','White'], marker="D", 
+              palette=['White','Yellow'], marker="o", 
               edgecolor="Black",linewidth=1,s=10)
 
-plt.ylim(85,98)
+plt.ylim(88,97)
 ax.xaxis.set_tick_params(labelsize=25)
 ax.yaxis.set_tick_params(labelsize=25)
+ax.legend(fontsize=20,markerscale=2)
 plt.ylabel('Laptime (s)', fontweight='bold', fontsize=26)
 plt.xlabel('Drivers', fontweight='bold', fontsize=26)
 plt.suptitle(
     f" Race Pace \n"
     f"{session.event.year} {session.event['EventName']} ({event}) ", fontsize=25, fontweight='bold')
+plt.grid(alpha=1, which='both', color='0.65', linestyle='-')
+
+# assign race strategy
+RS=['H|M','M|H','M|H','M|H','M|H','H|M','M|H','M|H','H|M']
+for j in range(len(RS)):
+    ax.text(drivers_to_visualize[j],88.5,RS[j],color='black',
+              fontsize=20, fontweight='bold',backgroundcolor='white', 
+              bbox=dict(facecolor='white',boxstyle='round'))
+
 resolution_value = 100
 plt.savefig("ViolinPlots.png", format="png", dpi=resolution_value)
