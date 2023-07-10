@@ -15,11 +15,13 @@ import numpy as np
 pd.options.mode.chained_assignment = None
 ff1.Cache.enable_cache('cache/')
 
-session = ff1.get_session(2023, "Canada", 'RACE')
+session = ff1.get_session(2023, "British", 'RACE')
 session.load(telemetry=False, weather=False)
-delete_laps=[1,2,3]
-laptimemin, laptimemax = 75, 79
-drvs=['VER','HAM']
+l1=list(range(1,20))
+l2=list(range(30,53))
+delete_laps=l1+l2
+laptimemin, laptimemax = 80, 100
+drvs=['NOR' , 'LEC' , 'RUS']
 
 col_dict={
     "PER":"Blue",
@@ -50,20 +52,26 @@ fig, ax = plt.subplots(figsize=(19.20, 10.8), dpi=100)
 for drv in drvs:
     drv_laps=session.laps.pick_driver(drv)
     abb = drv_laps['Driver'].iloc[0]
+    print(abb)
     drv_col=col_dict[drv]
     LN=drv_laps['LapNumber'].tolist()
     Lap_tym=drv_laps['LapTime'].dt.total_seconds().tolist()
     Comp=drv_laps['Compound'].tolist()
     cols=[]
+    m=[]
     for C in Comp:
         if C=='MEDIUM':
             cols.append('Yellow')
+            m.append("o")
         if C=='HARD':
             cols.append('White')
+            m.append("D")
         if C=='SOFT':
             cols.append('Red')
-    df=pd.DataFrame(list(zip(LN, Lap_tym,Comp,cols)),
-               columns =['LapNumber', 'LapTime','Compound','TyreColor'])
+            m.append("s")
+    df=pd.DataFrame(list(zip(LN, Lap_tym,Comp,cols,m)),
+               columns =['LapNumber', 'LapTime','Compound','TyreColor','Marker'])
+    
     # Filter Based on Laptimes
     df=df[df['LapTime']>laptimemin]
     df=df[df['LapTime']<laptimemax]
@@ -76,18 +84,23 @@ for drv in drvs:
     y=df['LapTime']
     xnew = np.linspace(df['LapNumber'].min(), df['LapNumber'].max(), 
                        num=3*len(df['LapNumber']), endpoint=True)
-    f_cubic = interp1d(x, y, kind=3)
+    # f_cubic = interp1d(x, y, kind=3)
     
     ax.plot(df['LapNumber'],df['LapTime'],linewidth=3, label=abb, color=drv_col)
     # ax.plot(xnew,f_cubic(xnew),label=abb, color=drv_col)
-    ax.scatter(x=x,y=y,s=100,c=df['TyreColor'],edgecolor=drv_col)
-
-ax.set_ylim([laptimemin,laptimemax])
+    ax.scatter(x=x,y=y,s=400,c=df['TyreColor'],
+               edgecolor=drv_col, marker='D', linewidths=3)
+    
 ax.set_ylabel('Lap Time, s',fontsize=26)
 ax.set_xlabel('Lap Number',fontsize=26)
 ax.xaxis.set_tick_params(labelsize=25)
 ax.yaxis.set_tick_params(labelsize=25)
-ax.legend(bbox_to_anchor=(1.0, 1.02),fontsize='32')
+ax.legend(ncol=3,fontsize='32',loc='lower left')#bbox_to_anchor=(1.0, 1.02),
+    
+plt.xticks(np.arange(20, 30, 2))
+plt.xlim([19,30])
+plt.ylim([92.4,93.2])
+
 plt.suptitle(
     f" Lap Time Trend \n"
     f"{session.event.year} {session.event['EventName']} (RACE) ", fontsize=25, fontweight='bold')
