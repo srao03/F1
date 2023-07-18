@@ -15,11 +15,13 @@ import numpy as np
 plotting.setup_mpl()
 ff1.Cache.enable_cache('cache/')
 #=============================================================
-session = ff1.get_session(2023, 'British Grand Prix', 'RACE')
+ssn_name='RACE'
+session = ff1.get_session(2023, 'British Grand Prix', ssn_name)
 session.load(weather=False)
 lapno=46
-Fastestlap_Flag=0
-drivers=['NOR','HAM','LEC']
+Fastestlap_Flag=1
+drivers=['NOR','HAM']
+turn_nos={"1":1020,"2":2000}
 #=============================================================
 
 col_dict={
@@ -68,13 +70,15 @@ for j in drivers:
     driver_color = col_dict[j]
     ax[0].plot(drv_tel['Distance'], drv_tel['Speed'],
                linewidth=3, color=driver_color,label=j)
-    legs.append(j+" ["+str(dict[j])+"]")
+    legs.append(j+" ["+str(dict[j])+"s]")
     
 ax[0].legend(legs, fontsize=23, loc=0)
 # ax[0].legend(legs,bbox_to_anchor=(0.1, 1.05),fontsize=23)
 ax[0].set_ylabel('Speed, km/h', fontweight='bold', fontsize=22)
 ax[0].xaxis.set_tick_params(labelsize=25)
 ax[0].yaxis.set_tick_params(labelsize=25)
+for g in turn_nos:
+    ax[0].axvline(x = turn_nos[g], color = 'yellow', linestyle = '--')
 
 # find the fastest driver
 lt=min(list(dict.values()))
@@ -102,12 +106,14 @@ ax[1].xaxis.set_tick_params(labelsize=25)
 ax[1].yaxis.set_tick_params(labelsize=25)
 ax[1].set_xlabel('Distance, m', fontweight='bold', fontsize=22)
 
-# plt.suptitle(f"Fastest Lap Comparison \n "
-#              f"{session.event['EventName']} {session.event.year} Qualifying", 
-#              fontsize=22, fontweight='bold')
-plt.suptitle(f"One Lap Comparison \n "
-              f"{session.event['EventName']} {session.event.year} RACE - Lap 46", 
-              fontsize=22, fontweight='bold')
+if Fastestlap_Flag==1:
+    plt.suptitle(f"Fastest Lap Comparison \n "
+                 f"{session.event['EventName']} {session.event.year} {ssn_name}", 
+                 fontsize=22, fontweight='bold')
+else:
+    plt.suptitle(f"One Lap Comparison \n "
+                 f"{session.event['EventName']} {session.event.year} {ssn_name} - Lap 46", 
+                 fontsize=22, fontweight='bold')
 plt.show()
 
 
