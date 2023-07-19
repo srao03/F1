@@ -22,6 +22,7 @@ Fastestlap_Flag=1
 drivers=['NOR','HAM']
 lapnos=46,46
 distance_min, distance_max = 1140, 2400
+turn_nos={"Turn-1":1520,"Turn-2":2000}
 #=============================================================
 
 col_dict={
@@ -142,8 +143,12 @@ ax[0].plot(telemetry_driver_1['Distance'], telemetry_driver_1['Speed'],
 ax[0].plot(telemetry_driver_2['Distance'], telemetry_driver_2['Speed'],
            label=drivers[1], color=driver2_color, linewidth=3, linestyle='-')
 
-# Speed difference
-# ax[0].text(distance_min + 30, 300, speed_text, fontsize=15, fontweight='bold')
+y1=ax[0].get_ylim()
+for g in turn_nos:
+    ax[0].axvline(x = turn_nos[g], color = 'yellow', linestyle = '--')
+    k1 = [k0 for k0, v0 in turn_nos.items() if v0 == turn_nos[g]][0]
+    ax[0].text(turn_nos[g],y1[0]+20,k1,color='black',
+               fontsize=17, fontweight='bold',backgroundcolor='white')
 
 ax[0].set_ylabel('Speed', fontweight='bold', fontsize=25)
 ax[0].legend(loc="lower right", fontsize=23)

@@ -20,7 +20,7 @@ Fastestlap_Flag=1
 drivers=['NOR','HAM','VER']
 lapnos=46,46,46
 distance_min, distance_max = 1140, 2400
-turn_nos={"1":1520,"2":2000}
+turn_nos={"Turn-1":1520,"Turn-2":2000}
 #=============================================================
 
 col_dict={
@@ -113,8 +113,12 @@ ax[0].legend(loc="lower right", fontsize=23)
 ax[0].tick_params(axis='y', which='major', labelsize=22)
 ax[0].set_xlim(distance_min, distance_max)
 
+y1=ax[0].get_ylim()
 for g in turn_nos:
     ax[0].axvline(x = turn_nos[g], color = 'yellow', linestyle = '--')
+    k1 = [k0 for k0, v0 in turn_nos.items() if v0 == turn_nos[g]][0]
+    ax[0].text(turn_nos[g],y1[0]+20,k1,color='black',
+               fontsize=17, fontweight='bold',backgroundcolor='white')
     
 # Horizontal barplot for telemetry
 for driver in drivers:
@@ -155,6 +159,6 @@ ax[1].tick_params(axis='both', which='major', labelsize=22)
 ax[1].set_xlim(distance_min, distance_max)
 plt.suptitle(
     f"{session.event.year} {session.event['EventName']}({ssn})\n"
-    f"Corner Analysis {drivers[0]} vs {drivers[1]} vs {drivers[2]} (TURN-2&3)", fontsize=20, fontweight='bold')
+    f"Corner Analysis {drivers[0]} vs {drivers[1]} vs {drivers[2]}", fontsize=20, fontweight='bold')
 # Save the plot
 plt.show()
