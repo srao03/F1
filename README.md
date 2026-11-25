@@ -12,20 +12,6 @@ Every script produces a publication-style chart (dark theme, team colours) ready
 
 ---
 
-## Example outputs
-
-> _Add your PNGs to an `images/` folder and they will show up here._
-
-| Race pace distribution | Cumulative delta |
-|---|---|
-| ![Violin plot](images/violin_plot.png) | ![Cumulative delta](images/cumulative_delta.png) |
-
-| Corner analysis | DRS effectiveness |
-|---|---|
-| ![Cornering](images/cornering.png) | ![DRS](images/drs_effectiveness.png) |
-
----
-
 ## Getting started
 
 ### Requirements
