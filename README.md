@@ -126,7 +126,3 @@ Drivers are identified by their three-letter codes (`VER`, `HAM`, `LEC`, `NOR`, 
 
 - [FastF1](https://github.com/theOehrly/Fast-F1) by theOehrly, which made accessing F1 timing data possible.
 - Data © Formula One World Championship Limited. This project is unofficial and not associated with Formula 1 companies.
-
-## Author
-
-**Shyamal Rao** ([@srao03](https://github.com/srao03))
